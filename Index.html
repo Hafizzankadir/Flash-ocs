@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCS Interview — Service Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#171B22;
+    --night-2:#1E242C;
+    --parchment:#ECE6D6;
+    --parchment-2:#E3DCC7;
+    --ink:#181410;
+    --ink-soft:#4A443A;
+    --brass:#A9812E;
+    --brass-bright:#C79A3E;
+    --sage:#5B6B52;
+    --hairline:#C9BFA0;
+    --hairline-dark:#333B45;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, #232B36 0%, var(--night) 60%);
+    color:#DDD6C4;
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 18px 48px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  .masthead{
+    text-align:center;
+    margin-bottom:22px;
+    max-width:640px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.28em;
+    color:var(--brass-bright);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(26px,4vw,36px);
+    margin:0 0 6px;
+    color:#F2EEE0;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    font-size:13.5px;
+    color:#9BA3AE;
+    line-height:1.5;
+  }
+
+  /* Section tabs — service ledger tabs */
+  .tabs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    justify-content:center;
+    margin:18px 0 26px;
+    max-width:820px;
+  }
+  .tab{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#9BA3AE;
+    background:transparent;
+    border:1px solid var(--hairline-dark);
+    border-radius:3px;
+    padding:7px 12px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .tab:hover{ border-color:var(--brass); color:#F2EEE0; }
+  .tab.active{
+    background:var(--brass);
+    border-color:var(--brass);
+    color:#181410;
+    font-weight:500;
+  }
+  .tab:focus-visible, .icon-btn:focus-visible, .flashcard:focus-visible{
+    outline:2px solid var(--brass-bright);
+    outline-offset:3px;
+  }
+
+  /* Card counter + tally */
+  .status-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    max-width:520px;
+    margin-bottom:12px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:#8890 9c;
+    color:#8A92A0;
+  }
+  .tally{
+    display:flex;
+    gap:2px;
+    align-items:flex-end;
+    height:14px;
+  }
+  .tally-mark{
+    width:2px;
+    height:12px;
+    background:var(--hairline-dark);
+    border-radius:1px;
+  }
+  .tally-mark.done{ background:var(--brass-bright); }
+
+  /* The flashcard */
+  .stage{
+    perspective:1600px;
+    width:100%;
+    max-width:520px;
+    height:390px;
+  }
+  .flashcard{
+    position:relative;
+    width:100%;
+    height:100%;
+    cursor:pointer;
+    transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.4,.2,.2,1);
+  }
+  .flashcard.flipped{ transform:rotateY(180deg); }
+  .face{
+    position:absolute;
+    inset:0;
+    backface-visibility:hidden;
+    border-radius:10px;
+    padding:30px 30px 26px;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 20px 50px -18px rgba(0,0,0,0.6), 0 2px 0 rgba(0,0,0,0.15);
+  }
+  .face.front{
+    background:
+      linear-gradient(155deg, var(--parchment) 0%, var(--parchment-2) 100%);
+    color:var(--ink);
+    justify-content:center;
+    border:1px solid #D8CFB4;
+  }
+  .face.front::before{
+    content:'';
+    position:absolute;
+    top:16px; left:16px; right:16px; bottom:16px;
+    border:1px solid rgba(24,20,16,0.14);
+    border-radius:6px;
+    pointer-events:none;
+  }
+  .face.back{
+    background:linear-gradient(155deg, var(--night-2) 0%, #171B22 100%);
+    color:#E4DFD1;
+    transform:rotateY(180deg);
+    border:1px solid var(--hairline-dark);
+    overflow-y:auto;
+  }
+
+  .card-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    margin-bottom:16px;
+  }
+  .face.front .card-tag{ color:var(--sage); }
+  .face.back .card-tag{ color:var(--brass-bright); }
+
+  .question-text{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:clamp(19px,2.6vw,23px);
+    line-height:1.38;
+    color:var(--ink);
+  }
+  .flip-hint{
+    position:absolute;
+    bottom:18px; left:0; right:0;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    opacity:0.55;
+  }
+
+  .points{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .points li{
+    font-size:13.5px;
+    line-height:1.5;
+    padding-left:16px;
+    position:relative;
+    border-left:2px solid var(--hairline-dark);
+  }
+  .points li::before{
+    content:'';
+    position:absolute;
+    left:-2px; top:2px;
+    width:2px; height:14px;
+    background:var(--brass-bright);
+  }
+  .points b{
+    color:#F2EEE0;
+    font-weight:600;
+  }
+
+  /* Controls */
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:22px;
+  }
+  .icon-btn{
+    font-family:'IBM Plex Mono', monospace;
+    background:transparent;
+    border:1px solid var(--hairline-dark);
+    color:#DDD6C4;
+    border-radius:6px;
+    padding:10px 16px;
+    font-size:12px;
+    letter-spacing:0.06em;
+    cursor:pointer;
+    transition:all .15s ease;
+    display:flex; align-items:center; gap:6px;
+  }
+  .icon-btn:hover{ border-color:var(--brass); color:#F2EEE0; }
+  .icon-btn.primary{
+    background:var(--brass);
+    border-color:var(--brass);
+    color:#181410;
+    font-weight:500;
+  }
+  .icon-btn.primary:hover{ background:var(--brass-bright); border-color:var(--brass-bright); }
+
+  footer.note{
+    margin-top:22px;
+    font-size:11.5px;
+    color:#6F7784;
+    text-align:center;
+    max-width:440px;
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="eyebrow">RBAF · Officer Cadet School</div>
+  <h1>Selection Interview Service Cards</h1>
+  <div class="sub">40 questions from your prep notes, condensed to recall cues. Read the question, say your answer out loud, then flip to check the points you meant to hit.</div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="status-row">
+  <span id="counter">CARD 1 / 40</span>
+  <div class="tally" id="tally"></div>
+</div>
+
+<div class="stage">
+  <div class="flashcard" id="card" tabindex="0" role="button" aria-label="Flashcard, press space or click to flip">
+    <div class="face front">
+      <div class="card-tag" id="tagFront">SECTION</div>
+      <div class="question-text" id="questionText">Question</div>
+      <div class="flip-hint">Tap to reveal key points</div>
+    </div>
+    <div class="face back">
+      <div class="card-tag" id="tagBack">KEY POINTS</div>
+      <ul class="points" id="pointsList"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="icon-btn" id="prevBtn">← Prev</button>
+  <button class="icon-btn primary" id="flipBtn">Flip</button>
+  <button class="icon-btn" id="nextBtn">Next →</button>
+  <button class="icon-btn" id="shuffleBtn">Shuffle</button>
+</div>
+
+<footer class="note">Say the answer in your own words first — these are recall cues, not a script to recite. Arrow keys move between cards, space flips.</footer>
+
+<script>
+const DATA = [
+{s:"Personal Background", q:"Can you tell me about your family and how they've influenced your life?", f:"Then → Now → Link", p:[
+  ["Then","Father's quiet example — long hours, no complaints, good leadership at work and home"],
+  ["Now","Leadership doesn't need to be verbal — be the role model"],
+  ["Link","As an officer: consistency and conduct speak louder than words"]
+]},
+{s:"Personal Background", q:"What personal experiences have shaped your character the most?", f:"STAR", p:[
+  ["Situation","Preparing for and failing the Final Interview Board on a past OCS attempt"],
+  ["Task","Selection demands real change — comms, leadership, presence under evaluation"],
+  ["Action","Built habits: clear syndicate communication, presenting to officers, composure under pressure"],
+  ["Result","Failure forced honest reflection — found real gaps, not just skill gaps"],
+  ["Trait","Self-awareness — honestly assessing where I fall short"]
+]},
+{s:"Personal Background", q:"How do you typically handle setbacks or failures?", f:"STAR", p:[
+  ["Situation","Failed the Final Interview Board on a previous OCS attempt"],
+  ["Task","Choice: end it, or find what was missing and build it"],
+  ["Action","Sought leadership experience — hackathon lead, own business, final year project; stayed disciplined in judo"],
+  ["Result","Back again today — proof I did something with the failure"],
+  ["Lesson","A setback only stops you if you let it — otherwise it's the start of the next attempt"]
+]},
+{s:"Personal Background", q:"What personal achievements have you experienced during your life so far?", f:"STAR", p:[
+  ["Situation","Won a medal competing abroad as a national judo athlete — self-initiated"],
+  ["Task","Competing against countries with deeper judo culture and more resources"],
+  ["Action","Trained multiple times a week, 1hr commute each way, treated as a full commitment"],
+  ["Result","Medal — consistency, not just talent, closes the gap"],
+  ["Link to service","Same discipline — showing up regardless of mood — is what I'd bring as an officer"]
+]},
+{s:"Personal Background", q:"What kind of environment did you grow up in, and how has it impacted you?", f:"Context → Impact → Application", p:[
+  ["Context","Public speaking / business exposure wasn't taught at home"],
+  ["Impact","Learned to seek things out myself rather than wait for them"],
+  ["Application","As an officer: create the capability or opportunity myself, don't wait for ideal conditions"]
+]},
+{s:"Personal Background", q:"What do you do in your spare time, and how do you keep fit?", f:"Value in Action", p:[
+  ["Fitness","Most days: judo/martial arts, calisthenics, running, swimming — well-rounded, not sport-specific"],
+  ["Spare time","Side projects in web dev and finance — tests what I'm learning instead of leaving it theoretical"]
+]},
+{s:"Personal Background", q:"Have you held any responsibilities that prepared you for military life?", f:"STAR → Military competency", p:[
+  ["Situation","Finance Associate, The Young Seekers — two projects, real budgets, tight deadlines"],
+  ["Task","Allocate limited resources correctly, hit deadlines that didn't move"],
+  ["Action","Managed budget carefully, tracked resources, adapted when things went off-plan"],
+  ["Result","Both delivered on time and within budget"],
+  ["Map to competency","Resource management = exactly what an officer must be accountable for"]
+]},
+{s:"Personal Background", q:"What are your strengths and weaknesses?", f:"Third-person mirror + evidence", p:[
+  ["Strength 1","Reliability — team could count on me to follow through, not just assign tasks"],
+  ["Strength 2","Initiative — Baiduri Capital internship: fixed workflow problems without being asked"],
+  ["Weakness","Knowing when to say no — take on too much; working on deliberate prioritising"]
+]},
+{s:"Personal Background", q:"What values are most important to you, and where do those values come from?", f:"Three values + origin", p:[
+  ["Reliability","From watching my father — he never made a promise he didn't keep"],
+  ["Initiative","Self-taught skills beyond what was expected — public speaking, technical knowledge"],
+  ["Discipline","Doing what's required whether or not I feel like it — tested most, matters most"]
+]},
+{s:"Personal Background", q:"Tell us about your struggles/challenges in work or life, and what you learned.", f:"STAR + Lesson", p:[
+  ["Situation","Switched Web Dev diploma → Finance & Risk Management degree, behind on core concepts"],
+  ["Task","Close the gap fast enough to keep up, not just eventually catch up"],
+  ["Action","Learned by doing — built own projects/case studies, asked others instead of struggling silently"],
+  ["Result","Practical work became the strongest proof of understanding, not just grades"],
+  ["Lesson","A weaker start doesn't mean you can't catch up — find your method, ask for help"]
+]},
+
+{s:"Joining the Military", q:"What motivated you to join the military?", f:"Point → Reason → Example → Restate", p:[
+  ["Point","Effort goes toward the country, not personal or company gain"],
+  ["Reason","Admires RBAF's standards and genuine investment in developing people"],
+  ["Example","Thought it through, discussed with family — fully behind the decision"],
+  ["Restate","Not a weak reason — choosing to put effort where the country needs it"]
+]},
+{s:"Joining the Military", q:"Why do you want to become an officer instead of joining as an enlisted member?", f:"Compare → Contrast → Vision", p:[
+  ["Compare","Enlisted = deep hands-on expertise, valuable but not what I'm looking for"],
+  ["Contrast","Want the responsibility of an officer — planning, decisions, accountability for people"],
+  ["Vision","Drawn to the strategic role; excited for OCS to test and build discipline/resilience"],
+  ["Tie to strength","School project & team lead — people need someone who'll make the call"]
+]},
+{s:"Joining the Military", q:"Was there a specific moment or event that sparked your decision to serve?", f:"STAR", p:[
+  ["Situation","No single dramatic spark — the Armed Force Commission Board (AFCB) is where it solidified"],
+  ["Task","AFCB was genuinely tiring, physically and mentally"],
+  ["Action","What stood out wasn't the difficulty — it was the camaraderie built with the team"],
+  ["Result","Confirmed this is the kind of environment I want to be part of"],
+  ["Link","Shared hardship and teamwork at AFCB pulled me toward the military, didn't push me away"]
+]},
+{s:"Joining the Military", q:"How long have you been considering a military career?", f:"Timeline + Evidence", p:[
+  ["Timeline","Several years — this is my 4th OCS application, going back to 2022"],
+  ["Evidence","Sustained action, not passive interest — leadership roles, own business, final year project, national judo"],
+  ["Why still now","Reason evolved — from financial stability to wanting the responsibility of leading people"],
+  ["Close","Tested and re-committed four times, with a clearer reason each time"]
+]},
+{s:"Joining the Military", q:"How do you think military service will shape your personal development?", f:"PREP", p:[
+  ["Point","Three ways: discipline, leadership under real pressure, resilience"],
+  ["Reason","Foundation built through judo and leadership roles — but OCS tests at a level I haven't experienced"],
+  ["Example","Seen it firsthand in a friend post-OCS; weighed the cost (family, flexibility) — family is supportive"],
+  ["Restate","Growth only matters if it's put to use for others' welfare, not self-improvement alone"]
+]},
+{s:"Joining the Military", q:"What do you hope to contribute to the military?", f:"Two contributions", p:[
+  ["1 — Finance & tech","Baiduri Capital internship: workflow automation — fits RBAF's digitalisation push"],
+  ["2 — Reliable leadership","Dependable, follows through, shows up especially when nobody's noticing"]
+]},
+{s:"Joining the Military", q:"How have your friends and family reacted to your decision to join?", f:"Acknowledge → Address → Outcome", p:[
+  ["Acknowledge","Some concern after repeated attempts — fair for them to question it"],
+  ["What addressed it","Consistent action over time, not words — proved genuine intent"],
+  ["Outcome","Fully supportive now — earned through years of action, not persuasion"]
+]},
+{s:"Joining the Military", q:"What qualities do you think make a good officer, and how do you embody them?", f:"Three qualities", p:[
+  ["Reliability","Say it, do it, every time — father's example, shown in team leadership"],
+  ["Initiative","Close gaps without being told — Baiduri Capital workflow fixes"],
+  ["Genuine care","Mentoring/coaching since secondary school — inspiring real change in people"]
+]},
+{s:"Joining the Military", q:"Are there any military figures you admire? Why?", f:"Figure → Detail → Trait → Application", p:[
+  ["Figure","Prince 'Abdul Mateen — directly tied to RBAF"],
+  ["Detail","Sandhurst 2010, same 44-week course as 200+ cadets, ranked up normally, helicopter pilot, Special Forces, now Lt Col"],
+  ["Trait","Didn't skip the work — earned qualifications like anyone else"],
+  ["Application","Rank should be backed by earned capability, not just given"]
+]},
+{s:"Joining the Military", q:"How do you think military service will differ from your expectations?", f:"Adjust → Acknowledge → Commit", p:[
+  ["Adjusted expectation","Pictured the visible, impressive moments; friend + AFCB showed it's mostly routine"],
+  ["Harder parts","AFCB prep was tiring in unglamorous ways — expects more of that in real service"],
+  ["Why still committed","What drew me was camaraderie, not excitement — that still holds"]
+]},
+
+{s:"OCS Training", q:"What do you know about the structure and phases of Officer Cadet School?", f:"48 weeks, 3 terms", p:[
+  ["Generic Term (20wk)","6wk Basic Militarisation (map reading, first aid, signals, drills) + leadership/field exercises"],
+  ["Special to Service (23wk)","10wk Single Service (Land/Navy/Air) + 13wk Joint Service — weapons, tactics, CO's & Commandant's Challenge"],
+  ["Final Term (5wk)","Prep for Sovereign's Parade — Exercise Ground Control tests leadership under pressure"],
+  ["Throughout","Physical endurance, leadership, MIB Philosophy, doctrine, decision-making"],
+  ["Source","Official RBAF/OCS material + seniors — ready to adapt if reality differs slightly"]
+]},
+{s:"OCS Training", q:"Which aspect of OCS training do you think will be most challenging for you?", f:"Real challenge → Mitigation → Close", p:[
+  ["Real challenge","Sustaining performance over the full 48 weeks — cumulative fatigue, not one exercise"],
+  ["Mitigation","Training without easy-outs now — judo even when unmotivated, managing recovery deliberately"],
+  ["Close","Can't fully replicate 48 weeks, but practiced pushing through fatigue in advance"]
+]},
+{s:"OCS Training", q:"What are you most looking forward to during your training?", f:"Positive framing → Growth link", p:[
+  ["Positive framing","Camaraderie — tasted it at AFCB, stuck with me more than any single skill"],
+  ["Growth link","Leadership isn't built in isolation — shared struggle shapes how you lead later"]
+]},
+{s:"OCS Training", q:"How are you preparing physically for OCS?", f:"Training → Gap → Progression", p:[
+  ["Training","3x running (2 aerobic base + 1 speed), 3x full-body calisthenics (30 pull-ups/70 push-ups/60 sit-ups), added swim & ruck, judo 1–2x scaled back"],
+  ["Honest gap","2.4km currently 11:30 — goal sub-10:00 before training starts"],
+  ["Progression","Upper body already strong; closing the gap on running speed + OCS-specific swim/ruck"]
+]},
+{s:"OCS Training", q:"How are you preparing mentally and emotionally for the training?", f:"Three techniques", p:[
+  ["1","Talked to a friend who's been through OCS — realistic picture of the mental side"],
+  ["2","Building discipline/routine now, not waiting to adapt once training starts"],
+  ["3","Reframing discomfort — consistency over intensity; tough moments are part of the process (from judo)"],
+  ["Acknowledge","Mental side isn't the same as physical — isolation, exhaustion, less visible; can't fully simulate but goes in aware"]
+]},
+{s:"OCS Training", q:"How do you plan to stay motivated during tough times in training?", f:"Two things", p:[
+  ["The why","After failing FIB, reminded myself to finish what I started — built leadership experience in the years since"],
+  ["The principle","From judo: tough times make you stronger — pushed through unmotivated sessions for the Southeast Asia Championship"]
+]},
+{s:"OCS Training", q:"What does discipline mean to you in the context of military training?", f:"Define → Example → Application", p:[
+  ["Define","Doing what's required consistently, whether or not anyone's watching"],
+  ["Example","Judo commute (1hr each way) — went even when no one was tracking it"],
+  ["Application","Operational readiness depends on the unglamorous things done right always — compliance ≠ discipline"]
+]},
+{s:"OCS Training", q:"Have you spoken to any current or former cadets? What did they share?", f:"Direct answer", p:[
+  ["Who","A friend currently in service — identity withheld, respecting his wish"],
+  ["What he shared","Both sides — real sacrifice of time away from family, but genuinely fulfilling"],
+  ["Outcome","Realistic picture now, still fully committed"]
+]},
+{s:"OCS Training", q:"How do you think you'll adapt to the regimentation of military life?", f:"Acknowledge → Evidence → Strategy", p:[
+  ["Acknowledge","Real adjustment — used to self-directed structure"],
+  ["Existing evidence","Judo's fixed schedule for years, project deadlines, living independently at a hostel"],
+  ["Strategy","Focus on process not friction — already practicing following instructions exactly as given"]
+]},
+{s:"OCS Training", q:"What strategies will you use to manage stress and pressure during training?", f:"Two strategies + understanding", p:[
+  ["1","Break pressure into priorities (Eisenhower Matrix) — used under real time pressure at Baiduri Capital"],
+  ["2","Rely on the section/team rather than carrying pressure alone — learned from AFCB and judo"],
+  ["Understanding","OCS pressure is deliberate, built to test response — not something to avoid"]
+]},
+
+{s:"Leadership & Teamwork", q:"Can you describe a time when you had to lead a team under pressure?", f:"STAR + What I'd change", p:[
+  ["Situation","Hackathon, hard fixed deadline, clashing working styles — fast/experimental vs thorough/planned"],
+  ["Task","Align the team and keep moving despite friction"],
+  ["Action","Listened to both sides, redirected debate into perspective-sharing, set checkpoints, made the calls"],
+  ["Result","Finished on time — disagreement never turned into dysfunction"],
+  ["What I'd change","Set checkpoints and expectations earlier, right at the start"]
+]},
+{s:"Leadership & Teamwork", q:"How do you approach working with people who have different personalities or viewpoints?", f:"General approach → Example → Handling disagreement", p:[
+  ["General approach","Adjust communication style per person — direct vs reflective"],
+  ["Example","Hackathon — let fast movers prototype early, gave planners a checkpoint to weigh in"],
+  ["Disagreement","Redirect from 'who's right' to sharing perspectives — builds empathy, finds common ground"],
+  ["Close","Adapt to the person, focus on understanding over winning"]
+]},
+{s:"Leadership & Teamwork", q:"What's more important in a team: results or relationships? Why?", f:"Balanced position + example", p:[
+  ["Position","Not separable — strong relationships make good results possible"],
+  ["Example","School project — focused on relationships first → team moved faster, delivered on time"],
+  ["If forced to choose","Relationships — trust lets a team recover from a bad result; results-only teams break under pressure"]
+]},
+{s:"Leadership & Teamwork", q:"How do you handle taking responsibility when things go wrong?", f:"STAR", p:[
+  ["Situation","Own business — an unintentional accident upset a customer"],
+  ["Ownership","Took full blame myself, no blame-shifting to the team member"],
+  ["Humility not punishment","No punishment — fail fast, learn faster; punishing kills transparency"],
+  ["Corrective action","Fixed the process itself, not the person"],
+  ["Result","Process held; team became more willing to flag problems early"]
+]},
+{s:"Leadership & Teamwork", q:"Describe a time you had to make a tough decision as a leader.", f:"STAR + Lesson", p:[
+  ["Situation","Web Dev diploma project, halfway through, spotted serious red flags on direction"],
+  ["Task","Keep building on sunk work, or pivot to a better direction"],
+  ["Action","Recognised the team's loss-aversion bias, analysed honestly, chose to pivot despite lost work"],
+  ["Result","Hard sell to the team, but pivoting early gave enough runway to execute properly"],
+  ["Lesson","Loss aversion affects teams too — hardest part is spotting the bias, not the decision itself"]
+]},
+{s:"Leadership & Teamwork", q:"How do you give constructive feedback to a teammate?", f:"STAR", p:[
+  ["Situation","School project check-ins revealed a teammate falling behind on research"],
+  ["Impact","Progress well below schedule, risked delaying the whole team"],
+  ["How addressed","Raised it privately, listened first rather than assuming"],
+  ["Found","He felt guilty asking for help, went quiet instead of raising it early"],
+  ["Corrective action","Gave guidance and resources, didn't take the task away — made it safe to ask"],
+  ["Result","Contribution picked up; became more willing to flag issues early"]
+]},
+{s:"Leadership & Teamwork", q:"Have you ever had to step back and let someone else lead? How did that feel?", f:"STAR + Lesson", p:[
+  ["Situation","Coaching a judo class — assigned technique wasn't my strongest"],
+  ["Task","A student had a stronger grasp of that technique — push through or step back"],
+  ["Action","Let the student teach that part, set ego aside"],
+  ["Result","Class got a stronger explanation; didn't undermine my role as coach"],
+  ["Lesson","Leadership means recognising when someone else is more capable, and having the humility to defer"]
+]},
+{s:"Leadership & Teamwork", q:"What does accountability mean to you as a future officer?", f:"Define → Extend → Example", p:[
+  ["Define","Owning the outcome, even if you weren't the one who directly caused it"],
+  ["Extend","Accountable for the welfare and conduct of the people under you, not just your own actions"],
+  ["Example","Business mistake — took full ownership, fixed the process instead of punishing anyone"]
+]},
+{s:"Leadership & Teamwork", q:"How do you motivate others during difficult situations?", f:"STAR", p:[
+  ["Situation","Politeknik project team pivoted direction — morale dropped, felt work was 'wasted'"],
+  ["Task","Get the team to restart with real effort, not going through the motions"],
+  ["Action","Explained the 'why' clearly, showed earlier effort wasn't wasted, led by example — jumped in early and visibly"],
+  ["Result","Energy came back; delivered a stronger final result than the original direction would have"]
+]},
+{s:"Leadership & Teamwork", q:"What's your leadership style, and how has it evolved?", f:"Then → Now → Example", p:[
+  ["Then","Decided alone, one mode — direct: tell people what to do"],
+  ["Now","Situational — delegate to high competence/commitment, support the solid middle, give closer direction + encouragement to low competence/confidence"],
+  ["Example","Judo coaching — stepped back for a highly competent student vs. directing early on regardless of who I worked with"]
+]}
+];
+
+const sections = ["All", ...new Set(DATA.map(d=>d.s))];
+let active = "All";
+let pool = DATA.map((d,i)=>i);
+let idx = 0;
+let flipped = false;
+
+const tabsEl = document.getElementById('tabs');
+const cardEl = document.getElementById('card');
+const tagFront = document.getElementById('tagFront');
+const tagBack = document.getElementById('tagBack');
+const questionText = document.getElementById('questionText');
+const pointsList = document.getElementById('pointsList');
+const counter = document.getElementById('counter');
+const tallyEl = document.getElementById('tally');
+
+function buildTabs(){
+  tabsEl.innerHTML = '';
+  sections.forEach(s=>{
+    const b = document.createElement('button');
+    b.className = 'tab' + (s===active ? ' active' : '');
+    b.textContent = s;
+    b.addEventListener('click', ()=>{ active = s; applyFilter(); });
+    tabsEl.appendChild(b);
+  });
+}
+
+function applyFilter(){
+  pool = DATA.map((d,i)=>i).filter(i => active==="All" || DATA[i].s===active);
+  idx = 0;
+  flipped = false;
+  cardEl.classList.remove('flipped');
+  buildTabs();
+  render();
+}
+
+function buildTally(){
+  tallyEl.innerHTML = '';
+  pool.forEach((_,i)=>{
+    const m = document.createElement('div');
+    m.className = 'tally-mark' + (i<=idx ? ' done' : '');
+    tallyEl.appendChild(m);
+  });
+}
+
+function render(){
+  const d = DATA[pool[idx]];
+  tagFront.textContent = d.s.toUpperCase();
+  tagBack.textContent = d.f.toUpperCase();
+  questionText.textContent = d.q;
+  pointsList.innerHTML = '';
+  d.p.forEach(([label,text])=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<b>${label}:</b> ${text}`;
+    pointsList.appendChild(li);
+  });
+  counter.textContent = `CARD ${idx+1} / ${pool.length}`;
+  buildTally();
+}
+
+function flip(){
+  flipped = !flipped;
+  cardEl.classList.toggle('flipped', flipped);
+}
+
+function go(delta){
+  idx = (idx + delta + pool.length) % pool.length;
+  flipped = false;
+  cardEl.classList.remove('flipped');
+  render();
+}
+
+function shuffle(){
+  for(let i=pool.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  idx = 0;
+  flipped = false;
+  cardEl.classList.remove('flipped');
+  render();
+}
+
+cardEl.addEventListener('click', flip);
+cardEl.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); flip(); }
+  if(e.code==='ArrowRight'){ go(1); }
+  if(e.code==='ArrowLeft'){ go(-1); }
+});
+document.getElementById('flipBtn').addEventListener('click', flip);
+document.getElementById('prevBtn').addEventListener('click', ()=>go(-1));
+document.getElementById('nextBtn').addEventListener('click', ()=>go(1));
+document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
